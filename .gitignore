@@ -1,0 +1,7 @@
+*.rendered*
+*.so
+plotting/*
+__pycache__
+
+config.json
+env.sh
