@@ -1,7 +1,11 @@
 *.rendered*
 *.so
 plotting/*
+data/*
 __pycache__
 
 config.json
 env.sh
+
+!plotting/.empty
+!data/.empty
