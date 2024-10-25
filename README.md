@@ -85,8 +85,8 @@ To see other commands and argument options, run
 You can find the data from our sparse tensor experiments
 at <https://portal.nersc.gov/project/m1982/hdf5_sparse_tensors/>.
 These are sparse tensor datasets from <frostt.io> stored in
-HDF5 format (for fast reads / writes). Use a tool like `curl` 
-to download a dataset, e.g. 
+HDF5 format (for fast reads / writes) without modification. 
+Use a tool like `curl` to download a dataset, e.g. 
 
 ```shell
 [zsh]> cd data 
@@ -94,16 +94,23 @@ to download a dataset, e.g.
 ```
 Using the `h5py` Package in Python, you can read / open these
 files and examine their contents using syntax similar 
-to Numpy arrays.
+to Numpy arrays. You can decompose a sparse tensor as follows:  
 
 ```shell
-[zsh]> python tt_driver.py -h 
+[zsh]> python  tt_driver.py decompose_sparse data/uber.tns_converted.hdf5 \
+            -t 40                \    
+            -iter 5              \   # Number of ALS sweeps 
+            -alg random          \   # Use exact instead for non-randomized LSTSQ 
+            -s 65536             \   # Sampled rows for randomized algorithms
+            -o outputs/test_runs \   # Output folder to place data from runs
+            -e 5                 \   # Record fit (1 - rel_err) every e sweeps 
+            -r 2                 \   # Repeat each experiment twice
+            --overwrite          \   # Overwrite any existing files in output dir 
 ```
-
 To reproduce our results, you may have to specify a preprocessing
 option for the tensor values (see Larsen Kolda 2022 for an
-explanation of this practice). In our work, we used the following 
-configurations for each tensor: 
+explanation of this practice). To do this, pass the flag `--log_count` to the
+command above. In our work, we used the following configurations for each tensor: 
 
 | Tensor | Preprocessing |
 |--------|---------------|

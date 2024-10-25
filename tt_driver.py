@@ -12,7 +12,7 @@ from algorithms.tt_als import *
 
 #from tensor_io.torch_tensor_loader import get_torch_tensor
 
-def verify_sampler(I=20, R=4, N=3, J=10000, seed=20, test_direction="left"): 
+def verify_sampler(args, I=20, R=4, N=3, J=10000, seed=20, test_direction="left"): 
     '''
     Test that our algorithm can match the true leverage
     score distribution from the left and right subchains
@@ -55,13 +55,13 @@ def verify_sampler(I=20, R=4, N=3, J=10000, seed=20, test_direction="left"):
     fig.savefig('plotting/distribution_comparison.png')
 
 def test_sparse_tensor_decomposition(params):
-    tensor_name = params.input
-    preprocessing = None 
+    tensor_name = params.tensor.split('/')[-1]
+    preprocessing = None
 
     if params.log_count:
         preprocessing = "log_count"
 
-    filename_prefix = '_'.join([params.input, str(params.trank), 
+    filename_prefix = '_'.join([tensor_name, str(params.trank), 
                                     str(params.iter), params.algorithm, str(params.samples), 
                                     str(params.epoch_iter)])
 
@@ -74,13 +74,13 @@ def test_sparse_tensor_decomposition(params):
             exp = json.load(f_handle)
             trial_nums.append(exp["trial_num"])
 
-    remaining_trials = [i for i in range(args.repetitions) if i not in trial_nums]
+    remaining_trials = list(range(args.repetitions))  
+    if not params.overwrite:
+        remaining_trials = [i for i in range(args.repetitions) if i not in trial_nums]
 
     if len(remaining_trials) > 0:
-            trial_num = remaining_trials[0] 
-            output_filename = f'{filename_prefix}_{trial_num}.out'
-
-    remaining_trials = [i for i in range(args.repetitions) if i not in trial_nums]
+        trial_num = remaining_trials[0] 
+        output_filename = f'{filename_prefix}_{trial_num}.out'
 
     if len(remaining_trials) == 0:
         print("No trials left to perform!")
@@ -114,7 +114,8 @@ def test_sparse_tensor_decomposition(params):
         now = datetime.datetime.now()
         output_dict = {
             'time': now.strftime('%m/%d/%Y, %H:%M:%S'), 
-            'input': params.input,
+            'input': params.tensor,
+            'preprocessing': preprocessing, 
             'target_rank': params.trank,
             'iterations': params.iter,
             'algorithm': params.algorithm,
@@ -139,9 +140,10 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(help='subcommand help')
     parser_verify = subparsers.add_parser('verify_sampler', help='Verifies sampler correctness by plotting true leverge samples vs. our samples in plotting directory.')
-    
-    parser_decompose = subparsers.add_parser('decompose_sparse_tensor', help='Decomposes a sparse tensor.')
-    parser_decompose.add_argument('tensor', type=str, help='Path to tensor to decompose', required=True)
+    parser_verify.set_defaults(func=verify_sampler)
+
+    parser_decompose = subparsers.add_parser('decompose_sparse', help='Decomposes a sparse tensor.')
+    parser_decompose.add_argument('tensor', type=str, help='Path to tensor to decompose')
     parser_decompose.add_argument("-t", "--trank", help="Rank of the target decomposition", required=True, type=int)
     parser_decompose.add_argument("-iter", help="Number of ALS iterations", required=True, type=int)
     parser_decompose.add_argument('-alg','--algorithm', type=str, help='Algorithm to perform decomposition', choices=['exact', 'random'], required=True)
@@ -150,10 +152,9 @@ if __name__=='__main__':
     parser_decompose.add_argument("-e", "--epoch_iter", help="Number of iterations per accuracy evaluation epoch", required=False, type=int, default=5)
     parser_decompose.add_argument("-r", "--repetitions", help="Number of repetitions for multiple trials", required=False, type=int, default=1)
     parser_decompose.add_argument("--log_count", help="Take the log of the values", action="store_true")
+    parser_decompose.add_argument("--overwrite", help="Overwrite any existing stat files in output directory", action="store_true")
+
+    parser_decompose.set_defaults(func=test_sparse_tensor_decomposition)
 
     args = parser.parse_args()
-    
-    if parser_verify:
-        verify_sampler()
-    elif parser_decompose:
-        test_sparse_tensor_decomposition(args)
+    args.func(args) 

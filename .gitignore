@@ -9,3 +9,6 @@ env.sh
 
 !plotting/.empty
 !data/.empty
+
+outputs/*
+!outputs/.empty
